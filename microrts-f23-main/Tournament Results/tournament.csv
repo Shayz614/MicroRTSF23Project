@@ -1,0 +1,165 @@
+tournaments.RoundRobinTournament,,,,,,,,
+AIs,,,,,,,,
+,MINS_Bot,,,,,,,
+,IliasAI(AStarPathFinding),,,,,,,
+,Miguel_MINS_Bot,,,,,,,
+,ShayAI(AStarPathFinding),,,,,,,
+,mayari,,,,,,,
+,WorkerRush(AStarPathFinding),,,,,,,
+,LightRush(AStarPathFinding),,,,,,,
+,HeavyRush(AStarPathFinding),,,,,,,
+,RangedRush(AStarPathFinding),,,,,,,
+maps,,,,,,,,
+,C:\Users\Matthew\Documents\school\Software Tools (CS 3560)\group project\MicroRTS\maps\16x16\basesWorkers16x16.xml,,,,,,,
+iterations,1,,,,,,,
+maxGameLength,3000,,,,,,,
+timeBudget,30,,,,,,,
+iterationsBudget,-1,,,,,,,
+pregameAnalysisBudget,1000,1000,,,,,,
+preAnalysis,TRUE,,,,,,,
+fullObservability,TRUE,,,,,,,
+timeoutCheck,TRUE,,,,,,,
+runGC,FALSE,,,,,,,
+iteration,map,ai1,ai2,time,winner,crashed,timedout,
+0,0,Matthew - MINS_Bot,IliasAI(AStarPathFinding),0,1,-1,0,
+0,0,Matthew - MINS_Bot,Miguel_MINS_Bot,938,0,-1,-1,
+0,0,Matthew - MINS_Bot,ShayAI(AStarPathFinding),855,0,-1,-1,
+0,0,Matthew - MINS_Bot,mayari,1162,0,-1,-1,
+0,0,Matthew - MINS_Bot,WorkerRush(AStarPathFinding),1437,0,-1,-1,
+0,0,Matthew - MINS_Bot,LightRush(AStarPathFinding),1045,0,-1,-1,
+0,0,Matthew - MINS_Bot,HeavyRush(AStarPathFinding),1272,0,-1,-1,
+0,0,Matthew - MINS_Bot,RangedRush(AStarPathFinding),1555,1,-1,-1,
+0,0,IliasAI(AStarPathFinding),Matthew - MINS_Bot,932,1,-1,-1,
+0,0,IliasAI(AStarPathFinding),Miguel_MINS_Bot,965,0,-1,-1,
+0,0,IliasAI(AStarPathFinding),ShayAI(AStarPathFinding),1129,0,-1,-1,
+0,0,IliasAI(AStarPathFinding),mayari,1173,1,-1,-1,
+0,0,IliasAI(AStarPathFinding),WorkerRush(AStarPathFinding),475,1,-1,-1,
+0,0,IliasAI(AStarPathFinding),LightRush(AStarPathFinding),2846,0,-1,-1,
+0,0,IliasAI(AStarPathFinding),HeavyRush(AStarPathFinding),1866,0,-1,-1,
+0,0,IliasAI(AStarPathFinding),RangedRush(AStarPathFinding),1593,0,-1,-1,
+0,0,Miguel_MINS_Bot,Matthew - MINS_Bot,771,1,-1,-1,
+0,0,Miguel_MINS_Bot,IliasAI(AStarPathFinding),851,1,-1,-1,
+0,0,Miguel_MINS_Bot,ShayAI(AStarPathFinding),3000,-1,-1,-1,
+0,0,Miguel_MINS_Bot,mayari,833,1,-1,-1,
+0,0,Miguel_MINS_Bot,WorkerRush(AStarPathFinding),460,1,-1,-1,
+0,0,Miguel_MINS_Bot,LightRush(AStarPathFinding),731,1,-1,-1,
+0,0,Miguel_MINS_Bot,HeavyRush(AStarPathFinding),803,1,-1,-1,
+0,0,Miguel_MINS_Bot,RangedRush(AStarPathFinding),655,1,-1,-1,
+0,0,ShayAI(AStarPathFinding),Matthew - MINS_Bot,817,1,-1,-1,
+0,0,ShayAI(AStarPathFinding),IliasAI(AStarPathFinding),874,1,-1,-1,
+0,0,ShayAI(AStarPathFinding),Miguel_MINS_Bot,792,1,-1,-1,
+0,0,ShayAI(AStarPathFinding),mayari,731,1,-1,-1,
+0,0,ShayAI(AStarPathFinding),WorkerRush(AStarPathFinding),370,1,-1,-1,
+0,0,ShayAI(AStarPathFinding),LightRush(AStarPathFinding),632,1,-1,-1,
+0,0,ShayAI(AStarPathFinding),HeavyRush(AStarPathFinding),743,1,-1,-1,
+0,0,ShayAI(AStarPathFinding),RangedRush(AStarPathFinding),725,1,-1,-1,
+0,0,mayari,Matthew - MINS_Bot,1022,1,-1,-1,
+0,0,mayari,IliasAI(AStarPathFinding),3000,-1,-1,-1,
+0,0,mayari,Miguel_MINS_Bot,893,0,-1,-1,
+0,0,mayari,ShayAI(AStarPathFinding),985,0,-1,-1,
+0,0,mayari,WorkerRush(AStarPathFinding),1110,0,-1,-1,
+0,0,mayari,LightRush(AStarPathFinding),1172,0,-1,-1,
+0,0,mayari,HeavyRush(AStarPathFinding),2107,0,-1,-1,
+0,0,mayari,RangedRush(AStarPathFinding),1147,0,-1,-1,
+0,0,WorkerRush(AStarPathFinding),Matthew - MINS_Bot,865,0,-1,-1,
+0,0,WorkerRush(AStarPathFinding),IliasAI(AStarPathFinding),375,0,-1,-1,
+0,0,WorkerRush(AStarPathFinding),Miguel_MINS_Bot,345,0,-1,-1,
+0,0,WorkerRush(AStarPathFinding),ShayAI(AStarPathFinding),445,0,-1,-1,
+0,0,WorkerRush(AStarPathFinding),mayari,1145,1,-1,-1,
+0,0,WorkerRush(AStarPathFinding),LightRush(AStarPathFinding),470,0,-1,-1,
+0,0,WorkerRush(AStarPathFinding),HeavyRush(AStarPathFinding),370,0,-1,-1,
+0,0,WorkerRush(AStarPathFinding),RangedRush(AStarPathFinding),370,0,-1,-1,
+0,0,LightRush(AStarPathFinding),Matthew - MINS_Bot,1192,0,-1,-1,
+0,0,LightRush(AStarPathFinding),IliasAI(AStarPathFinding),1601,1,-1,-1,
+0,0,LightRush(AStarPathFinding),Miguel_MINS_Bot,626,0,-1,-1,
+0,0,LightRush(AStarPathFinding),ShayAI(AStarPathFinding),855,0,-1,-1,
+0,0,LightRush(AStarPathFinding),mayari,1070,1,-1,-1,
+0,0,LightRush(AStarPathFinding),WorkerRush(AStarPathFinding),835,1,-1,-1,
+0,0,LightRush(AStarPathFinding),HeavyRush(AStarPathFinding),891,0,-1,-1,
+0,0,LightRush(AStarPathFinding),RangedRush(AStarPathFinding),1140,0,-1,-1,
+0,0,HeavyRush(AStarPathFinding),Matthew - MINS_Bot,881,1,-1,-1,
+0,0,HeavyRush(AStarPathFinding),IliasAI(AStarPathFinding),2235,1,-1,-1,
+0,0,HeavyRush(AStarPathFinding),Miguel_MINS_Bot,948,0,-1,-1,
+0,0,HeavyRush(AStarPathFinding),ShayAI(AStarPathFinding),966,0,-1,-1,
+0,0,HeavyRush(AStarPathFinding),mayari,2215,1,-1,-1,
+0,0,HeavyRush(AStarPathFinding),WorkerRush(AStarPathFinding),370,1,-1,-1,
+0,0,HeavyRush(AStarPathFinding),LightRush(AStarPathFinding),2044,0,-1,-1,
+0,0,HeavyRush(AStarPathFinding),RangedRush(AStarPathFinding),2292,0,-1,-1,
+0,0,RangedRush(AStarPathFinding),Matthew - MINS_Bot,1452,1,-1,-1,
+0,0,RangedRush(AStarPathFinding),IliasAI(AStarPathFinding),1966,1,-1,-1,
+0,0,RangedRush(AStarPathFinding),Miguel_MINS_Bot,675,0,-1,-1,
+0,0,RangedRush(AStarPathFinding),ShayAI(AStarPathFinding),745,0,-1,-1,
+0,0,RangedRush(AStarPathFinding),mayari,2016,1,-1,-1,
+0,0,RangedRush(AStarPathFinding),WorkerRush(AStarPathFinding),370,1,-1,-1,
+0,0,RangedRush(AStarPathFinding),LightRush(AStarPathFinding),977,1,-1,-1,
+0,0,RangedRush(AStarPathFinding),HeavyRush(AStarPathFinding),1572,1,-1,-1,
+Wins:,,,,,,,,
+0,0,1,1,1,1,1,1,0
+0,0,1,1,0,0,1,1,1
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,1,1,0,1,1,1,1
+1,1,1,1,0,0,1,1,1
+1,0,1,1,0,0,0,1,1
+0,0,1,1,0,0,1,0,1
+0,0,1,1,0,0,0,0,0
+Ties:,,,,,,,,
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,1,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,1,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+Average Game Length:,,,,,,,,
+0,0,938,855,1162,1437,1045,1272,1555
+932,0,965,1129,1173,475,2846,1866,1593
+771,851,0,3000,833,460,731,803,655
+817,874,792,0,731,370,632,743,725
+1022,3000,893,985,0,1110,1172,2107,1147
+865,375,345,445,1145,0,470,370,370
+1192,1601,626,855,1070,835,0,891,1140
+881,2235,948,966,2215,370,2044,0,2292
+1452,1966,675,745,2016,370,977,1572,0
+AI crashes:,,,,,,,,
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+opponent AI crashes:,,,,,,,,
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+AI timeout:,,,,,,,,
+0,1,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+opponent AI timeout:,,,,,,,,
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0

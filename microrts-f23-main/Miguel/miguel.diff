@@ -1,0 +1,965 @@
+diff --git a/MINS_Bot.java b/Miguel/Miguel_MINS_Bot.java
+index 15b7f24..097b83c 100644
+--- a/MINS_Bot.java
++++ b/Miguel/Miguel_MINS_Bot.java
+@@ -1,5 +1,5 @@
+-package mins_bot;
+-      
++package miguel_mins_bot;
++
+ import ai.core.AI;
+ import ai.core.AIWithComputationBudget;
+ import ai.core.ParameterSpecification;
+@@ -7,333 +7,496 @@ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.LinkedList;
+ import rts.GameState;
++import rts.PhysicalGameState;
++import static rts.PhysicalGameState.TERRAIN_WALL;
++import rts.Player;
+ import rts.PlayerAction;
+ import rts.UnitAction;
++import rts.UnitActionAssignment;
+ import rts.units.Unit;
+ import rts.units.UnitType;
+ import rts.units.UnitTypeTable;
++import rts.ResourceUsage;
+ import java.lang.Math;
+ import ai.abstraction.pathfinding.AStarPathFinding;
+ 
+-public class MINS_Bot extends AIWithComputationBudget 
+-{
++// This version of mins_bot is Miguel's. My strategy is to combine the ideas of a light rush and proxy rush where I will initially gain resources quickly, then as soon as possible begin building a 
++// barrack close to the enemy's structures and rush light units while continually gathering resources. The idea behind this strategy is to quickly distract and overwhelm the opposition before they
++// can establish a strong attack and overwhelm them during their preperations. This strategy hinges on the success of the initial proxy build and attack. If it fails, my bot most likely loses.
++public class Miguel_MINS_Bot extends AIWithComputationBudget {
++
++    // Position class to represent (x,y) coordinates. Taken from Mayari.
++    public class Pos {
++        int _x;
++        int _y;
++        Pos(int x, int y) {
++            _x = x;
++            _y = y;
++        }
++        public int getX() { return _x; }
++        public int getY() { return _y; }
++    }
+ 
+     UnitTypeTable m_utt = null;
+-    private long startTime; //Variable to track when the decision-making process starts
+-    private long maxTime;  //Variable to store the maximum allowed time for computation
++    private long startTime; // Variable to track when the decision-making process starts
++    private long maxTime;  // Variable to store the maximum allowed time for computation
+     PlayerAction playerAction;
+     GameState gameState;
++    Player _player;
+     int playerID;
+     AStarPathFinding pathFinder;
+-    // This is the default constructor that microRTS will call:
+ 
+-    public MINS_Bot(UnitTypeTable utt) 
+-    {
++    // Friendly units
++    int availableResources;
++    List<Unit> bases;
++    List<Unit> barracks;
++    List<Unit> workers;
++    List<Unit> lights;
++    List<Unit> allyUnits;
++    Pos proxyPos;
++
++    // might implement later, lists enemies that can attack. List<Unit> _allyCombat;
++
++    // Enemy units
++    List<Unit> enemyBases;
++    List<Unit> enemyBarracks;
++    List<Unit> enemyWorkers;
++    List<Unit> enemyHeavies;
++    List<Unit> enemyRanged;
++    List<Unit> enemyLights;
++    List<Unit> enemies;
++    // might implement later, lists enemies that can attack. List<Unit> _enemiesCombat;
++
++    List<Unit> all;
++    List<Unit> resources;
+ 
++    // This is the default constructor that microRTS will call:
++    public Miguel_MINS_Bot(UnitTypeTable utt) {
+         super(-1,-1);
+         pathFinder = new AStarPathFinding();
+         m_utt = utt;
+         maxTime = TIME_BUDGET; //Sets the maxTime to TIME_BUDGET
+ 
+     }
+-    public AI clone() 
+-    {
+-        return new MINS_Bot(m_utt);
++
++    @Override
++    public List<ParameterSpecification> getParameters() {
++        return new ArrayList<>();
++    }
++
++    @Override
++    public AI clone() {
++        return new Miguel_MINS_Bot(m_utt);
+     }
+ 
+     // This will be called once at the beginning of each new game:    
+-    public void reset() 
+-    {
++    @Override
++    public void reset() {
++    }
+ 
++    boolean isEnemyUnit(Unit u) {
++        return u.getPlayer() >= 0 && u.getPlayer() != _player.getID(); //can be neither ally or foe
+     }
+ 
+-       
++    void init() {
+ 
+-    // Called by microRTS at each game cycle.
++        availableResources = _player.getResources() - gameState.getResourceUsage().getResourcesUsed(playerID);
+ 
+-    // Returns the action the bot wants to execute.
++        allyUnits = new ArrayList<>(); 
++        bases = new ArrayList<>();
++        barracks = new ArrayList<>();
++        workers = new ArrayList<>();
++        lights = new ArrayList<>();
+ 
+-    public PlayerAction getAction(int player, GameState gs) 
+-    {
+-        gameState = gs.clone();
+-        playerID = player;
+-        playerAction = new PlayerAction();
+-        playerAction.clear();
++        enemies  = new ArrayList<>();
++        enemyBases = new ArrayList<>();
++        enemyBarracks = new ArrayList<>();
++        enemyWorkers = new ArrayList<>();
++        enemyHeavies = new ArrayList<>();
++        enemyRanged = new ArrayList<>();
++        enemyLights = new ArrayList<>();
++
++        all = new ArrayList<>();
++        resources = new ArrayList<>();
+         
+-        List<Unit> units = gameState.getUnits();
+-        for(Unit u : units){//goes through each unit and calls the relavent function to set its action if needed
+-            if(!u.isIdle(gameState) || u.getPlayer() != player)
+-            {//if the unit is occupied or controlled by the other player go to the next unit
++        for (Unit u : gameState.getPhysicalGameState().getUnits()) {
++            if (u.getType().isResource)
++                resources.add(u);
++            else if (u.getType() == m_utt.getUnitType("Base") && isEnemyUnit(u))
++                enemyBases.add(u);
++            else if (u.getType() == m_utt.getUnitType("Base"))
++                bases.add(u);
++            else if (u.getType() == m_utt.getUnitType("Barracks") && isEnemyUnit(u))
++                enemyBarracks.add(u);
++            else if (u.getType() == m_utt.getUnitType("Barracks"))
++                barracks.add(u);
++            else if (u.getType() == m_utt.getUnitType("Worker") && isEnemyUnit(u))
++                enemyWorkers.add(u);
++            else if (u.getType() == m_utt.getUnitType("Worker"))
++                workers.add(u);
++            else if (u.getType() == m_utt.getUnitType("Ranged") && isEnemyUnit(u))
++                enemyRanged.add(u);
++            else if (u.getType() == m_utt.getUnitType("Heavy") && isEnemyUnit(u))
++                enemyHeavies.add(u);
++            else if (u.getType() == m_utt.getUnitType("Light") && isEnemyUnit(u))
++                enemyLights.add(u);
++            else if (u.getType() == m_utt.getUnitType("Light"))
++                lights.add(u);     
++        }
++
++        for (Unit u : gameState.getPhysicalGameState().getUnits()) {
++            if(u.getType().isResource)
+                 continue;
++            all.add(u);
++            if (isEnemyUnit(u))
++                enemies.add(u);
++            else
++                allyUnits.add(u);
++        }
++
++        // Get proxy location
++        Unit closestEnemyBase;
++        Unit closestEnemyBarracks;
++        Unit closestEnemyStructure;
++
++        if (!enemyBases.isEmpty() && enemyBarracks.isEmpty()) {
++            closestEnemyStructure = getClosestEnemyType(enemyBases.get(0), "Base");
++            int enemyStructureX = closestEnemyStructure.getX();
++            int enemyStructureY = closestEnemyStructure.getY();
++            proxyPos = getBuildLocation(enemyStructureX, enemyStructureY, gameState.getPhysicalGameState().getWidth(), gameState.getPhysicalGameState().getHeight());
++        }
++        else if (enemyBases.isEmpty() && !enemyBarracks.isEmpty()) {
++            closestEnemyStructure = getClosestEnemyType(enemyBarracks.get(0), "Barracks");
++            int enemyStructureX = closestEnemyStructure.getX();
++            int enemyStructureY = closestEnemyStructure.getY();
++            proxyPos = getBuildLocation(enemyStructureX, enemyStructureY, gameState.getPhysicalGameState().getWidth(), gameState.getPhysicalGameState().getHeight());
++        }
++        else if (!enemyBases.isEmpty() && !enemyBarracks.isEmpty()) {
++            closestEnemyBase = getClosestEnemyType(enemyBases.get(0), "Base");
++            closestEnemyBarracks = getClosestEnemyType(enemyBarracks.get(0), "Barracks");
++            if (getSquareUnitDistance(enemyBases.get(0), closestEnemyBase) < getSquareUnitDistance(enemyBases.get(0), closestEnemyBarracks)) {
++                closestEnemyStructure = closestEnemyBase;
+             }
+-            //calls the function for the current unit
+-            if("Worker".equals(u.getType().name))
+-            {
+-                //setWorkerAction(u);
++            else {
++                closestEnemyStructure = closestEnemyBarracks;
+             }
++
++            int enemyStructureX = closestEnemyStructure.getX();
++            int enemyStructureY = closestEnemyStructure.getY();
++            proxyPos = getBuildLocation(enemyStructureX, enemyStructureY, gameState.getPhysicalGameState().getWidth(), gameState.getPhysicalGameState().getHeight());
++        }
++        else {
++            proxyPos = null;
++        }
++    }
++
++    // Called by microRTS at each game cycle.
++    // Returns the action the bot wants to execute.
++    @Override
++    public PlayerAction getAction(int player, GameState gs) {
++        gameState = gs.clone();
++        playerID = player;
++        _player = gameState.getPlayer(player);
++        playerAction = new PlayerAction();
++        playerAction.clear();
++
++        init();
++
++        for(Unit u : allyUnits) {                                               // goes through each unit and calls the relevent function to set its action if needed
+             
+-            if("Light".equals(u.getType().name))
+-            {
+-                setLightAction(u);
++            if(!u.isIdle(gameState) || u.getPlayer() != player) {               // if the unit is occupied or controlled by the other player go to the next unit
++                continue;
+             }
+             
+-            if("Heavy".equals(u.getType().name))
+-            {
+-                setHeavyAction(u);
++            // calls the function for the current unit
++            if("Worker".equals(u.getType().name)) {
++                setWorkerAction(u);
+             }
+             
+-            if("Ranged".equals(u.getType().name))
+-            {
+-                setRangedAction(u);
++            if("Light".equals(u.getType().name)) {
++                setLightAction(u);
+             }
+             
+-            if("Barracks".equals(u.getType().name))
+-            {
++            if("Barracks".equals(u.getType().name)) {
+                 setBarracksAction(u);
+             }
+             
+-            if("Base".equals(u.getType().name))
+-            {
+-                //setBaseAction(u);
++            if("Base".equals(u.getType().name)) {
++                setBaseAction(u);
+             }
+-            gameState.issue(playerAction);//issues the actions assigned so far to allow conflicting actions to be caught
++
++            gameState.issue(playerAction);                  //issues the actions assigned so far to allow conflicting actions to be caught
+             
+         }
+-        //fills any remaining actions with a 1 frame none actions (a unit must always have an action assigned to it)
+-        playerAction.fillWithNones(gameState, player, 1);
++        
++        playerAction.fillWithNones(gameState, player, 1);   //fills any remaining actions with a 1 frame none actions (a unit must always have an action assigned to it)
+                 
+         return playerAction;
+     }    
+-    
+-    //function for each unit type to decide the action the given unit should take and add it to playerActions
+-    public void setWorkerAction(Unit u)
+-    {   
+-        List<UnitAction> validActions = u.getUnitActions(gameState, 1);//gets all actions the unit can perform
+-        if(gameState.isUnitActionAllowed(u, validActions.get(0)))
+-        {//makes sure the action does not conflict with other unit actions
+-            playerAction.addUnitAction(u, validActions.get(0));//does whatever happens to be at index 0. This should be altered to perform what is found to be the best action
++
++    // The following methods are unit action methods implementing logic for each type of unit
++
++    public void setBaseAction(Unit u) {
++
++            UnitAction produceWorker;
++            int workerCount = workers.size();
++            if (_player.getResources() >= 5 && workerCount < 3) {   // if we have 5 or more resources && less than 3 workers, then make a worker. The values can be modified as we test.
++
++                
++                // Check free spaces, if none, then wait
++                int xPos = u.getX();
++                int yPos = u.getY();
++                if (posFree(xPos, yPos, UnitAction.DIRECTION_DOWN))
++                    produceWorker = new UnitAction(UnitAction.TYPE_PRODUCE, UnitAction.DIRECTION_DOWN, m_utt.getUnitType("Worker"));
++                else if (posFree(xPos, yPos, UnitAction.DIRECTION_UP))
++                    produceWorker = new UnitAction(UnitAction.TYPE_PRODUCE, UnitAction.DIRECTION_UP, m_utt.getUnitType("Worker"));
++                else if (posFree(xPos, yPos, UnitAction.DIRECTION_LEFT))
++                    produceWorker = new UnitAction(UnitAction.TYPE_PRODUCE, UnitAction.DIRECTION_LEFT, m_utt.getUnitType("Worker"));
++                else if (posFree(xPos, yPos, UnitAction.DIRECTION_RIGHT))
++                    produceWorker = new UnitAction(UnitAction.TYPE_PRODUCE, UnitAction.DIRECTION_RIGHT, m_utt.getUnitType("Worker"));
++                else
++                    produceWorker = new UnitAction(UnitAction.TYPE_NONE);
++            } else {
++                produceWorker = new UnitAction(UnitAction.TYPE_NONE);
++            }
++
++        if (produceWorker!= null && gameState.isUnitActionAllowed(u, produceWorker)) {
++            playerAction.addUnitAction(u, produceWorker);
++        }
++        else {
++            playerAction.addUnitAction(u, new UnitAction(UnitAction.TYPE_NONE));
+         }
+     }
+-    
+-    
+-    public void setLightAction(Unit u)
+-    {        
+-        List<UnitAction> validActions = u.getUnitActions(gameState, 1);//gets all actions the unit can perform
+-        Unit closestEnemy = getClosestEnemy(u);
+-        int closestDistance = getSquareUnitDistance(u, closestEnemy);
+ 
+-        if (closestEnemy != null) 
+-        {// Prioritize attacking closest enemy first        
+-            UnitAction attackAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemy.getX(), closestEnemy.getY()); 
+-            if (validActions.contains(attackAction) && gameState.isUnitActionAllowed(u, attackAction)) 
+-            {
+-                playerAction.addUnitAction(u, attackAction);
+-                return;
++    // The barracks will attempt to produce as many light units as possible while leaving 2 resources for the sake of 
++    public void setBarracksAction(Unit u) {
++        
++        /* since the bot will only have one barracks on the board at a time for now, this isn't necessary. Might be changed later
++
++        int idleBarracks = 0;
++        for(Unit currentUnit:units) {           // finds how many idle barracks there are to consider the money that should be used
++            if(currentUnit.isIdle(gameState) && currentUnit.getPlayer() == playerID && currentUnit.getType().name.equals("Barracks")) {
++                ++idleBarracks;
+             }
+         }
+-       
+-        // Otherwise, move to find an enemy to attack
+-        if (closestEnemy != null)
+-        {
+-            UnitAction moveTowardsClosest = moveInRange(u, closestEnemy);
+-            if(moveTowardsClosest != null)
+-            {
+-                 playerAction.addUnitAction(u, moveTowardsClosest);
+-            }
++        int budget = (gameState.getPhysicalGameState().getPlayer(playerID).getResources() - playerAction.getResourceUsage().getResourcesUsed(playerID)) / idleBarracks; // the share of this barracks resources in evenly split amoung idle barracks. Ignores worker and base resource usage.
++        
++        */
++
++        UnitAction produceUnit;
++        if (_player.getResources() >= 2) {
++
++            // Check free spaces, if none, then wait
++            int xPos = u.getX();
++            int yPos = u.getY();
++            if (posFree(xPos, yPos, UnitAction.DIRECTION_DOWN))
++                produceUnit = new UnitAction(UnitAction.TYPE_PRODUCE, UnitAction.DIRECTION_DOWN, m_utt.getUnitType("Light"));
++            else if (posFree(xPos, yPos, UnitAction.DIRECTION_UP))
++                produceUnit = new UnitAction(UnitAction.TYPE_PRODUCE, UnitAction.DIRECTION_UP, m_utt.getUnitType("Light"));
++            else if (posFree(xPos, yPos, UnitAction.DIRECTION_LEFT))
++                produceUnit = new UnitAction(UnitAction.TYPE_PRODUCE, UnitAction.DIRECTION_LEFT, m_utt.getUnitType("Light"));
++            else if (posFree(xPos, yPos, UnitAction.DIRECTION_RIGHT))
++                produceUnit = new UnitAction(UnitAction.TYPE_PRODUCE, UnitAction.DIRECTION_RIGHT, m_utt.getUnitType("Light"));
++            else
++                produceUnit = new UnitAction(UnitAction.TYPE_NONE);
++        }
++        else {  // If not, do nothing
++            produceUnit = new UnitAction(UnitAction.TYPE_NONE);
++        }
++        
++        if(produceUnit != null && gameState.isUnitActionAllowed(u, produceUnit)) {
++            playerAction.addUnitAction(u, produceUnit);
++        }
++        else {
++            playerAction.addUnitAction(u, new UnitAction(UnitAction.TYPE_NONE));
+         }
+     }
+     
+-    // Heavy units Action set(Shay)
+-    public void setHeavyAction(Unit u)
+-    {
+-        List<UnitAction> validActions = u.getUnitActions(gameState, 1);//gets all actions the unit can perform
+-        Unit closestEnemy = getClosestEnemy(u);
+-        int closestDistance = getSquareUnitDistance(u, closestEnemy);
++    public void setWorkerAction(Unit u) {
+ 
+-        if (closestEnemy != null) 
+-        {// Prioritize attacking closest enemy first        
+-            UnitAction attackAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemy.getX(), closestEnemy.getY()); 
+-            if (validActions.contains(attackAction) && gameState.isUnitActionAllowed(u, attackAction)) 
+-            {
+-                playerAction.addUnitAction(u, attackAction);
+-                return;
++        UnitAction workerAction;
++
++		if(bases.isEmpty())return;
++        Unit mainBase = bases.get(0);
++
++        // Locate nearest resource unit here
++        Unit closestResource = null;
++        int distance = gameState.getPhysicalGameState().getWidth()*gameState.getPhysicalGameState().getWidth(); // Max possible distance from one corner to the other
++        for (Unit r : resources) {
++            int checkDist = getSquareUnitDistance(u, r);
++            if (checkDist < distance) {
++                distance = checkDist;
++                closestResource = r;
+             }
+         }
+-        
+-        // Otherwise, move to find an enemy to attack
+-        if (closestEnemy != null)
+-        {
+-            UnitAction moveTowardsClosest = moveInRange(u, closestEnemy);
+-            if( moveTowardsClosest != null)
+-            {
+-                 playerAction.addUnitAction(u, moveTowardsClosest);
+-            }
++
++        int buildPosX, buildPosY;
++        int movePosX, movePosY;
++
++        if (proxyPos != null) {
++            buildPosX = proxyPos.getX();
++            buildPosY = proxyPos.getY();
++            movePosX = buildPosX + 1;
++            movePosY = buildPosY;
++        }
++        else {
++            buildPosX = gameState.getPhysicalGameState().getWidth()/2;
++            buildPosY = gameState.getPhysicalGameState().getHeight()/2;
++            movePosX = buildPosX + 1;
++            movePosY = buildPosY;
+         }
+ 
+-    }
+-    
+-    // Determine Ranged Unit Action (Miguel)
+-    // The logic for this type for now is defined as follows:
+-    // First check if an enemy unit is within the danger zone, ie. 1 space
+-    // If not, and there are enemies within range, attack
+-    // If no enemies in range, move until there is are enemies in range
+-    // Currently there is no logic for a defensive position set up. This is temporarily an aggressive ranged unit.
+-    // A flaw would be that it does not check if it is moving into more danger, it simply moves away from the first found nearest unit
+-    // As sophistication of this bot improves, more features and logic will be implemented
+-    // Currently, the effectiveness of this strategy is questionable because theoretically, a unit could simply be continuously pursued and would never attack.
+-    // In the larger sense of the game, however, due to the variable nature of the game, there are other factors at play - for example, perhaps heavy and light could assist in keeping space between enemy units and friendly ranged
+-    public void setRangedAction(Unit u) 
+-    {
+-        
+-        List<UnitAction> validActions = u.getUnitActions(gameState, 1);    // Gets all actions the unit can perform
+-        
+-        Unit closestEnemy = getClosestEnemy(u);
+-        int closestDistance = getSquareUnitDistance(u, closestEnemy);
+-        
+-        // If an enemy is within 1 space in any direction, move one space in a direction such that it is no longer 1 space away
+-        if (closestEnemy != null) 
+-        { // If there is an enemy
+-            // If in 'danger  zone', retreat
+-            if (closestDistance == 1) 
+-            {
+-                // Determine which direction to move away from danger
+-                int avoidX = closestEnemy.getX();
+-                int avoidY = closestEnemy.getY();
+-                int moveX, moveY;
+-
+-                // Note: right now, it doesn't check if the move is valid until after, and if it isn't, it will move on to the next action check which is attack
+-                if (u.getX() < avoidX) { moveX = UnitAction.DIRECTION_LEFT; }
+-                else if (u.getX() > avoidX) { moveX = UnitAction.DIRECTION_RIGHT; }
+-                else { moveX = UnitAction.DIRECTION_NONE; }
+-
+-                if (u.getX() < avoidY) { moveY = UnitAction.DIRECTION_DOWN; }
+-                else if (u.getX() > avoidY) { moveY = UnitAction.DIRECTION_UP; }
+-                else { moveY = UnitAction.DIRECTION_NONE; }
+-                
+-        UnitAction moveAction = new UnitAction(UnitAction.TYPE_MOVE, (int)Math.round((Math.random() * 3.0)));
+-                if (validActions.contains(moveAction) && gameState.isUnitActionAllowed(u, moveAction)) 
+-                {
+-                    playerAction.addUnitAction(u, moveAction);
+-                    return;
++        System.out.println(buildPosX + ", " + buildPosY);
++
++        if(busy(u)) {
++            System.out.println("Unit is busy");
++            return;
++        }
++        else if (proxyPos != null && _player.getResources() >= 6 && barracks.size() < 1) {     
++            // find location to build barracks
++            // move there and build it
++
++            // Find the nearest enemy structure, either a base or a barracks
++            
++            // Build the proxy barracks
++            if (u.getX() == movePosX && u.getY() == movePosY) {  // If in the move location that is suitable for building, then build
++                if (gameState.getPhysicalGameState().getUnitAt(buildPosX, buildPosY) == null) {     // Check if the space to build is free and no other worker is already going to build.
++                    workerAction = new UnitAction(UnitAction.TYPE_PRODUCE, UnitAction.DIRECTION_UP, m_utt.getUnitType("Barracks"));
++                }
++                else {  // Otherwise, wait
++                    workerAction = new UnitAction(UnitAction.TYPE_NONE);
+                 }
+             }
+-            
+-            // If the closest enemy is within range and is not within the danger zone specified above, and is within attack range, attack that unit
+-            // Currently, it is possible the unit is within the danger zone and this unit still carries out an attack action - to be refined as we develop a better strategy
+-            UnitAction attackAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemy.getX(), closestEnemy.getY()); 
+-            if (validActions.contains(attackAction) && gameState.isUnitActionAllowed(u, attackAction)) 
+-            {
+-                playerAction.addUnitAction(u, attackAction);
+-                return;
++            else {  // Otherwise, move to move location
++                workerAction = moveTowardsPosition(u, movePosX, movePosY);
+             }
+         }
+-
+-        // Otherwise, move to find an enemy to attack
+-        if (closestEnemy != null)
+-        {
+-            UnitAction moveTowardsClosest = moveInRange(u, closestEnemy);
+-            if( moveTowardsClosest != null)
+-            {
+-                 playerAction.addUnitAction(u, moveTowardsClosest);
++        else if (resources.isEmpty() && !enemyBases.isEmpty()) {                    // Attack nearest enemy base
++            Unit closestEnemyBase = getClosestEnemyType(u, "Base");
++            if (isInRange(u, closestEnemyBase)) {                                   // If in range, attack
++                workerAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemyBase.getX(), closestEnemyBase.getY());
++            }
++            else {                                                                  // Otherwise, move in range
++                workerAction = moveInRange(u, closestEnemyBase);
+             }
+         }
+-    }
+-    
+-    
+-    public void setBarracksAction(Unit u)
+-    {
+-        List<Unit> units = gameState.getUnits();
+-        int idleBarracks = 0;
+-        for(Unit currentUnit:units)
+-        {//finds how many idle barracks there are to consider the money that should be used
+-            if(currentUnit.isIdle(gameState) && currentUnit.getPlayer() == playerID && currentUnit.getType().name == "Barracks")
+-            {
+-                ++idleBarracks;
++        else if (resources.isEmpty() && !enemyBarracks.isEmpty()) {                 // Attack nearest enemy barracks
++            Unit closestEnemyBarracks = getClosestEnemyType(u, "Barracks");
++            if (isInRange(u, closestEnemyBarracks)) {                               // If in range, attack
++                workerAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemyBarracks.getX(), closestEnemyBarracks.getY());
+             }
++            else {                                                                  // Otherwise, move in range
++                workerAction = moveInRange(u, closestEnemyBarracks);
++            }  
+         }
+-        int budget = (gameState.getPhysicalGameState().getPlayer(playerID).getResources() - playerAction.getResourceUsage().getResourcesUsed(playerID)) / idleBarracks;//the share of this barracks resources in evenly split amoung idle barracks. Ignores worker and base resource ussage.
+-        
+-        UnitType bestUnitType = gameState.getUnitTypeTable().getUnitTypes().get(0);//The best type of unit that can be produced
+-        int bestValue = Integer.MIN_VALUE;
+-        for(UnitType type:u.getType().produces)
+-        {
+-            if(type.cost <= budget)
+-            {//finds the best unit in budget or cheapest unit if none are within budget
+-                if(type.hp*type.maxDamage*type.attackRange/type.attackTime > bestValue)
+-                {
+-                    bestUnitType = type;
+-                    bestValue = bestUnitType.hp*bestUnitType.maxDamage*bestUnitType.attackRange/bestUnitType.attackTime;
+-                }
++        else if (resources.isEmpty() && !enemyRanged.isEmpty()) {                   // Attack nearest enemy combatant
++            Unit closestEnemyCombatant = getClosestEnemyType(u, "Ranged");
++            if (isInRange(u, closestEnemyCombatant)) {                              // If in range, attack
++                workerAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemyCombatant.getX(), closestEnemyCombatant.getY());
+             }
+-            else
+-            {
+-                if(type.cost < bestUnitType.cost)
+-                {
+-                    bestUnitType = type;
+-                }
++            else {                                                                  // Otherwise, move in range
++                workerAction = moveInRange(u, closestEnemyCombatant);
+             }
+         }
+-        
+-        bestUnitType = gameState.getUnitTypeTable().getUnitType((int)(4+(int)(Math.random()*3)));
+-        if(bestUnitType.cost > (gameState.getPhysicalGameState().getPlayer(playerID).getResources() - playerAction.getResourceUsage().getResourcesUsed(playerID)))
+-        {//if there are not enough resources to produce the unit returns
+-            return;
++        else if (resources.isEmpty() && !enemyHeavies.isEmpty()) {
++            Unit closestEnemyCombatant = getClosestEnemyType(u, "Heavy");
++            if (isInRange(u, closestEnemyCombatant)) {                              // If in range, attack
++                workerAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemyCombatant.getX(), closestEnemyCombatant.getY());
++            }
++            else {                                                                  // Otherwise, move in range
++                workerAction = moveInRange(u, closestEnemyCombatant);
++            }
+         }
+-        
+-        float bestDirectionWorth = -1;
+-        int bestDirection = 0;
+-        for(int i = 0; i < 4; ++i)
+-        {
+-            float  directionWorth = 0;
+-            int newX = u.getX() + UnitAction.DIRECTION_OFFSET_X[i];
+-            int newY = u.getY() + UnitAction.DIRECTION_OFFSET_Y[i];
+-            
+-            if(newX < 0 || newY < 0 ||  newX >= gameState.getPhysicalGameState().getWidth() || newY >= gameState.getPhysicalGameState().getHeight() || !gameState.free(newX, newY))
+-            {//skips spaces which are occupied or out of bounds
+-                continue;
++        else if (resources.isEmpty() && !enemyLights.isEmpty()) {
++            Unit closestEnemyCombatant = getClosestEnemyType(u, "Light");
++            if (isInRange(u, closestEnemyCombatant)) {                              // If in range, attack
++                workerAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemyCombatant.getX(), closestEnemyCombatant.getY());
+             }
+-            
+-            for(Unit currentUnit:units)
+-            {//increases worth of unit being produced in a direction based on proximity to other units
+-                if(currentUnit.getPlayer() == playerID)
+-                {//bonus for ally proximity
+-                    int distance = 1 + Math.abs(newX - currentUnit.getX()) + Math.abs(newY - currentUnit.getY());
+-                   directionWorth += 1/distance ;//closer frendly units are more beneficial 
++            else {                                                                  // Otherwise, move in range
++                workerAction = moveInRange(u, closestEnemyCombatant);
++            }
++        }
++        else if (resources.isEmpty() && !enemyWorkers.isEmpty()) {
++            Unit closestEnemyCombatant = getClosestEnemyType(u, "Worker");
++            if (isInRange(u, closestEnemyCombatant)) {                              // If in range, attack
++                workerAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemyCombatant.getX(), closestEnemyCombatant.getY());
++            }
++            else {                                                                  // Otherwise, move in range
++                workerAction = moveInRange(u, closestEnemyCombatant);
++            }
++        }
++        else {                                                                      // Gather nearest resource
++            if (closestResource == null) {                                          // Do nothing if no closest resources
++                workerAction = new UnitAction(UnitAction.TYPE_NONE);
++            }
++            else {                                                                  // Harvest resource
++                if (u.getResources() != 0) {                                        // If carrying resource, go return it
++                    if (isInRange(u, mainBase)) {                                   // If next to base, deposit resource
++                        workerAction = new UnitAction(UnitAction.TYPE_RETURN, toDir(toPos(u), toPos(mainBase)));
++                    }
++                    else {                                                          // Otherwise, move to base
++                        workerAction = moveInRange(u, mainBase);
++                    }
+                 }
+-                else
+-                {//bonus for enemy proximity
+-                   int distance = Math.abs(newX - currentUnit.getX()) + Math.abs(newY - currentUnit.getY());
+-                   directionWorth += 1/(1 + Math.abs(distance -bestUnitType.attackRange));//closer to the attack range is more valuable 
++                else if (isInRange(u, closestResource)) {                           // If in range, harvest
++                    //commented out for demo System.out.println("harvest action added");
++                    workerAction = new UnitAction(UnitAction.TYPE_HARVEST, toDir(toPos(u), toPos(closestResource)));
++                }
++                else {                                                              // Otherwise, move in range
++                    //commented out for demo System.out.println("moveInRange");
++                    workerAction = moveInRange(u, closestResource);
+                 }
+             }
+-            
+-            if(directionWorth > bestDirectionWorth)
++        }
++
++        if(workerAction != null && gameState.isUnitActionAllowed(u, workerAction)) {
++            playerAction.addUnitAction(u, workerAction);
++            return;
++        }
++        playerAction.addUnitAction(u, new UnitAction(UnitAction.TYPE_NONE));
++        return;
++    }
++    
++    // 
++    public void setLightAction(Unit u) {        
++        List<UnitAction> validActions = u.getUnitActions(gameState, 1); //gets all actions the unit can perform
++        Unit closestEnemy = getClosestEnemy(u);
++        int closestDistance = getSquareUnitDistance(u, closestEnemy);
++
++        if (closestEnemy != null) 
++        {   // Prioritize attacking closest enemy first        
++            UnitAction attackAction = new UnitAction(UnitAction.TYPE_ATTACK_LOCATION, closestEnemy.getX(), closestEnemy.getY()); 
++            if (attackAction != null && validActions.contains(attackAction) && gameState.isUnitActionAllowed(u, attackAction)) 
+             {
+-                bestDirectionWorth = directionWorth;
+-                bestDirection = i;
++                playerAction.addUnitAction(u, attackAction);
++                return;
+             }
+         }
+-        UnitAction bestAction = new UnitAction(UnitAction.TYPE_PRODUCE, bestDirection, bestUnitType);
+-        if(gameState.isUnitActionAllowed(u, bestAction))
++       
++        // Otherwise, move to find an enemy to attack
++        if (closestEnemy != null)
+         {
+-            playerAction.addUnitAction(u, bestAction);
++            UnitAction moveTowardsClosest = moveInRange(u, closestEnemy);
++            if(moveTowardsClosest != null)
++            {
++                 playerAction.addUnitAction(u, moveTowardsClosest);
++            }
+         }
+     }
+-    
+-    
+-    public void setBaseAction(Unit u)
+-    {
+-        List<UnitAction> validActions = u.getUnitActions(gameState, 1);//gets all actions the unit can perform
+-        if(gameState.isUnitActionAllowed(u, validActions.get(0)))
+-        {//makes sure the action does not conflict with other unit actions
+-            playerAction.addUnitAction(u, validActions.get(0));//does whatever happens to be at index 0. This should be altered to perform what is found to be the best action
+-        }
+-        
++
++    // Checks if a unit is busy with an action or not, taken form Mayari
++    boolean busy(Unit u) {
++        if(playerAction.getAction(u) != null)
++            return true;
++        UnitActionAssignment aa = gameState.getActionAssignment(u);
++        return aa != null;
+     }
+-    
+-    //returns the enemy closest to the unit u or null if there is none
+-    private Unit getClosestEnemy(Unit u){
+-        Unit closestEnemy = null;       // Checks for any enemy units nearby the heavy units
++
++    // The following methods are positioning methods from the prototype of the MINS bot
++
++    // returns the enemy closest to the unit u or null if there is none
++    private Unit getClosestEnemy(Unit u) {
++        Unit closestEnemy = null;                                           // Checks for any enemy units nearby the heavy units
+         int closestDistance = Integer.MAX_VALUE;
+         for (Unit unit : gameState.getUnits()) 
+         {
+@@ -350,40 +513,198 @@ public class MINS_Bot extends AIWithComputationBudget
+         return closestEnemy;
+     }
+     
+-    //returns the distance squared between the units, this is the distance that would be considered towards attack range not the distance to travel to eachother
+-    //the square distance is used since square root is slow and range is dependant on the distance of a straight line between points rather than the spaces that would need traveled. 
+-    private int getSquareUnitDistance(Unit u, Unit other){
++    // returns the distance squared between the units, this is the distance that would be considered towards attack range not the distance to to eachothertravel 
++    // the square distance is used since square root is slow and range is dependant on the distance of a straight line between points rather than the spaces that would need traveled. 
++    private int getSquareUnitDistance(Unit u, Unit other) {
+         return (other.getY() - u.getY())*(other.getY() - u.getY()) + (other.getX() - u.getX())*(other.getX() - u.getX());
+     }
+     
+-   //attempts to move within range to attach unit other, null will  be returned if no path exists
+-    private UnitAction moveInRange(Unit u, Unit other){
++   // attempts to move within range to attack unit other, null will  be returned if no path exists
++    private UnitAction moveInRange(Unit u, Unit other) {
+         int width = gameState.getPhysicalGameState().getWidth();
+         return pathFinder.findPathToPositionInRange(u, other.getX() + other.getY()*width, u.getAttackRange(), gameState, playerAction.getResourceUsage());
+     }
+     
+-   //attempts to move adjacent to unit other, null will  be returned if no path exists
+-    private UnitAction moveTowardsUnit(Unit u, Unit other){
++   // attempts to move adjacent to unit other, null will  be returned if no path exists
++    private UnitAction moveTowardsUnit(Unit u, Unit other) {
+         int width = gameState.getPhysicalGameState().getWidth();
+         return pathFinder.findPathToAdjacentPosition(u, other.getX() + other.getY()*width, gameState, playerAction.getResourceUsage());
+     }
+     
+-   //attempts to move towards the given position, null will  be returned if no path exists
+-    private UnitAction moveTowardsPositon(Unit u, int x, int y){
++   // attempts to move towards the given position, null will  be returned if no path exists
++    private UnitAction moveTowardsPosition(Unit u, int x, int y) {
+         int width = gameState.getPhysicalGameState().getWidth();
+         return pathFinder.findPath(u, x + y*width, gameState, playerAction.getResourceUsage());
+     }
+-    
+-    // This will be called by the microRTS GUI to get the
+ 
+-    // list of parameters that this bot wants exposed
+ 
+-    // in the GUI.
++    // The following code relating to positioning is taken from the Mayari bot and modified slightly to fit this class
+ 
+-    public List<ParameterSpecification> getParameters()
++    // true if the position isn't occupied
++    public boolean posFree(int x, int y, int dir) {
++        Pos pos = futurePos(x, y, dir);
++        int rasterPos = pos.getX() + pos.getY() * gameState.getPhysicalGameState().getWidth();
++        if(gameState.getPhysicalGameState().getUnitAt(pos.getX(), pos.getY()) != null)  // check to see if there's a unit there
++            return false;
++        if (gameState.getPhysicalGameState().getTerrain(pos.getX(), pos.getY()) == TERRAIN_WALL)    // check to see if it's the wall
++            return false;
++        return true;
++    }
+ 
+-    {
+-        return new ArrayList<>();
++    // Gets a future position relative to the position (x,y)
++    Pos futurePos(int x, int y, int dir) {
++        int nx = x;
++        int ny = y;
++        switch (dir) {
++            case UnitAction.DIRECTION_DOWN:
++                ny = (ny == gameState.getPhysicalGameState().getHeight()- 1) ? ny : ny + 1;
++                break;
++            case UnitAction.DIRECTION_UP:
++                ny = (ny == 0) ? ny : ny - 1;
++                break;
++            case UnitAction.DIRECTION_RIGHT:
++                nx = (nx == gameState.getPhysicalGameState().getWidth() - 1) ? nx : nx + 1;
++                break;
++            case UnitAction.DIRECTION_LEFT:
++                nx = (nx == 0) ? nx : nx - 1;
++                break;
++            default:
++                break;
++        }
++        return new Pos(nx, ny);
+     }
+ 
++    Pos toPos(Unit u) {
++        return new Pos(u.getX(), u.getY());
++    }
++
++    // The following positioning methods I wrote/will write
++
++    // Finds nearest enemy of type 'type' in relation to the Unit u. If none of type, returns itself.
++    public Unit getClosestEnemyType(Unit u, String type) {
++
++        List<Unit> unitOfType = new ArrayList<>();
++        switch (type) {
++            case "Base":
++                unitOfType.addAll(enemyBases);
++                break;
++            case "Barracks":
++                unitOfType.addAll(enemyBarracks);
++                break;
++            case "Worker":
++                unitOfType.addAll(enemyWorkers);
++                break;
++            case "Light":
++                unitOfType.addAll(enemyLights);
++                break;
++            case "Heavy":
++                unitOfType.addAll(enemyHeavies);
++                break;
++            case "Ranged":
++                unitOfType.addAll(enemyRanged);
++                break;
++            default:
++                System.out.println("Invalid enemy type was attempted");
++        }
++
++        if (unitOfType.size() == 0) {   // Check if there are no units of type 'type' or if the type was incorrect
++            return u;
++        }
++
++        Unit closestEnemy = null;
++        int closestDistance = Integer.MAX_VALUE;
++        for (Unit unit : unitOfType) {
++            int distance = getSquareUnitDistance(u, unit);
++            if (distance < closestDistance) 
++            {
++                closestDistance = distance;
++                closestEnemy = unit;
++            }
++        }
++        return closestEnemy;
++    }
++
++    // Checks if a unit 'src' is within range of attacking/harvesting 'target' - should be directly adjacent, can't be diagonal
++    public boolean isInRange(Unit src, Unit target) {
++        int srcX = src.getX();
++        int srcY = src.getY();
++        int tarX = target.getX();
++        int tarY = target.getY();
++        
++        if (srcX == tarX) {
++            if (srcY == tarY+1 || srcY == tarY-1)
++                return true;
++        }
++        else if (srcY == tarY) {
++            if (srcX == tarX+1 || srcX == tarX-1)
++                return true;
++        }
++
++        return false;
++    }
++
++    int toDir(Pos src, Pos dst) {
++        int dx = dst.getX() - src.getX();
++        int dy = dst.getY() - src.getY();
++        int dirX = dx > 0 ? UnitAction.DIRECTION_RIGHT : UnitAction.DIRECTION_LEFT;
++        int dirY = dy > 0 ? UnitAction.DIRECTION_DOWN : UnitAction.DIRECTION_UP;
++        if (Math.abs(dx) > Math.abs(dy))
++            return dirX;
++        return dirY;
++     }
++
++    //  Function to get the barracks proxy build location based on an enemy base's X and Y coordinates. Return a Pos object representing build location's X and Y
++    //   Basic logic for this:
++    //  Find the quadrant that the enemy base is in. 
++    //  Build a barracks this is done because many maps have bases along the edges or corners of the map, so knowing generally which 'corner' the map is in can be useful in finding a proxy location
++    // 
++    Pos getBuildLocation(int enemyX, int enemyY, int boardWidth, int boardHeight) {
++
++        int proxyDistance = boardWidth/2+boardWidth/5;
++
++        int buildX, buildY;
++
++        // Check up/down/left/right
++        if (enemyX - proxyDistance >= 0) {
++            buildX = enemyX - proxyDistance;
++            buildY = enemyY;
++        }
++        else if (enemyX + proxyDistance < boardWidth) {
++            buildX = enemyX + proxyDistance;
++            buildY = enemyY;
++        }
++        else if (enemyY - proxyDistance >= 0) {
++            buildX = enemyX;
++            buildY = enemyY - proxyDistance;
++        }
++        else if (enemyX + proxyDistance < boardHeight) {
++            buildX = enemyX;
++            buildY = enemyY + proxyDistance;
++        }
++
++        // Check corners
++        else if (enemyX - proxyDistance >= 0 && enemyY - proxyDistance >= 0) {
++            buildX = enemyX - proxyDistance;
++            buildY = enemyY - proxyDistance;
++        }
++        else if (enemyX - proxyDistance >= 0 && enemyY + proxyDistance < boardHeight) {
++            buildX = enemyX - proxyDistance;
++            buildY = enemyY - proxyDistance;
++        }
++
++        else if (enemyX + proxyDistance < boardWidth && enemyY - proxyDistance >= 0) {
++            buildX = enemyX - proxyDistance;
++            buildY = enemyY - proxyDistance;
++        }
++        else if (enemyX + proxyDistance < boardWidth && enemyY + proxyDistance < boardHeight) {
++            buildX = enemyX - proxyDistance;
++            buildY = enemyY - proxyDistance;
++        }
++        else {
++            buildX = -1;
++            buildY = -1;
++        }
++
++        return new Pos(buildX, buildY); // Return invalid Pos
++    }
+ }
+\ No newline at end of file
